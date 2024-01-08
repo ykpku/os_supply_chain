@@ -16,6 +16,7 @@ def type_or_error(c, t, e):
 
 class PkgProps(object):
     def __init__(self, os_name, os_arch, os_ver, os_k, os_url, os_path, primary_file):
+        self.prop_info = None
         self.pkg_num = None
         self.os_name = os_name
         self.os_arch = os_arch
@@ -24,7 +25,7 @@ class PkgProps(object):
         self.os_url = os_url
         self.os_path = os_path
         self.primary_file_name = primary_file
-        self.prop_header = ['index_id', 'type', 'pkgId', 'name', 'arch', 'version', 'epoch', 'release', 'summary', 'description', 'url', 'time_file', 'time_build', 'rpm_license', 'rpm_vendor', 'rpm_group', 'rpm_buildhost', 'rpm_sourcerpm', 'rpm_header_start', 'rpm_header_end', 'rpm_packager', 'size_package', 'size_installed', 'size_archive', 'location_href', 'location_base', 'checksum_type']
+        self.prop_header = ['index_id', 'type', 'pkgId', 'name', 'arch', 'version', 'epoch', 'release', 'summary', 'description', 'url', 'time_file', 'time_build', 'rpm_license', 'rpm_vendor', 'rpm_group', 'rpm_buildhost', 'rpm_sourcerpm', 'rpm_header_start', 'rpm_header_end', 'rpm_packager', 'size_package', 'size_installed', 'size_archive', 'location_href', 'checksum_type']
 
         self.get_pkg_prop_info()
 
@@ -38,6 +39,7 @@ class PkgProps(object):
         if self.pkg_num <= 0:
             print("====xml data pkg num error====")
             return
+        self.prop_info = {}
         for p in xml_root['metadata']['package']:
             p_contend = {}
             p_contend['type'] = self.__get_prop_type(p)
@@ -54,7 +56,7 @@ class PkgProps(object):
             p_contend['description'] = self.__get_prop_description(p)
             p_contend['rpm_packager'] = self.__get_prop_packager(p)
             p_contend['url'] = self.__get_prop_url(p)
-            tf, tb = self.__get_prop_type(p)
+            tf, tb = self.__get_prop_time(p)
             p_contend['time_file'] = tf
             p_contend['time_build'] = tb
             si, sa, sp = self.__get_prop_size(p)
@@ -70,11 +72,17 @@ class PkgProps(object):
             p_contend['rpm_sourcerpm'] = rpm_sourcerpm
             p_contend['rpm_header_start'] = rpm_headerstart
             p_contend['rpm_header_end'] = rpm_headerend
-
-
-
-        return None
+            self.prop_info[self._pkg_id_generator(p_contend)] = p_contend
         pass
+
+    @staticmethod
+    def _pkg_id_generator(p_contend):
+        if p_contend['epoch'] != "0":
+            pkg_id = p_contend['name'] + "-" + p_contend['epoch'] + ":" + p_contend['version'] + "-" + p_contend[
+                'release'] + "." + p_contend['arch']
+            return pkg_id
+        pkg_id = p_contend['name'] + "-" + p_contend['version'] + "-" + p_contend['release'] + "." + p_contend['arch']
+        return pkg_id
 
     @staticmethod
     def __get_prop_type(contend):
@@ -121,6 +129,7 @@ class PkgProps(object):
     def __get_prop_time(contend):
         time_file = type_or_error(contend['time']['@file'], str, "prop time file")
         time_build = type_or_error(contend['time']['@build'], str, "prop time build")
+        return time_file, time_build
 
     @staticmethod
     def __get_prop_size(contend):
